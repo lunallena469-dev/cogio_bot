@@ -1,3 +1,9 @@
-build:
-  pythonVersion: 3.10
-startCommand: python cogio_bot.py
+services:
+  - type: web
+    name: cogio-bot
+    env: python
+    buildCommand: ""
+    startCommand: python cogio_bot.py
+    plan: free
+    pythonVersion: 3.10
+    autoDeploy: true
