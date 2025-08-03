@@ -2,6 +2,6 @@ services:
   - type: web
     name: cogio-bot
     env: python
-    startCommand: python cogio_bot.py
     plan: free
-    autoDeploy: true
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python cogio_bot.py"
