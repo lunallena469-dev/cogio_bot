@@ -5,5 +5,4 @@ services:
     buildCommand: ""
     startCommand: python cogio_bot.py
     plan: free
-    pythonVersion: 3.10
     autoDeploy: true
