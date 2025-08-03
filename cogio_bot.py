@@ -29,12 +29,11 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         await context.bot.send_message(
             chat.id,
-            f"👋 Bienvenido, {user.mention_html()}!
-
-"
-            "📸 Por seguridad del grupo, debes enviar una **foto o video tuyo real** dentro de los próximos 60 segundos.
-"
-            "⏳ Si no lo haces, serás expulsado automáticamente.",
+            (
+                f"👋 Bienvenido, {user.mention_html()}!\n\n"
+                "📸 Por seguridad del grupo, debes enviar una **foto o video tuyo real** dentro de los próximos 60 segundos.\n"
+                "⏳ Si no lo haces, serás expulsado automáticamente."
+            ),
             parse_mode='HTML'
         )
 
