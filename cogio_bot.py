@@ -1,85 +1,53 @@
-import asyncio
-import logging
-from telegram import Update, ChatPermissions
+from telegram import Update
 from telegram.ext import (
-    ApplicationBuilder, 
-    ChatMemberHandler, 
-    MessageHandler, 
-    filters, 
-    ContextTypes
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
 )
+import asyncio
 
-# Reemplaza tu token aquí
 TOKEN = "8075777545:AAFaoOeTcf-z6SuB69TTjMwZOjrgLoGV1tg"
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
 
-new_users_pending = {}
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hola, envíame una foto o video dentro de 60 segundos o serás expulsado.")
 
-async def restrict_user(chat_id, user_id, context):
-    try:
-        await context.bot.restrict_chat_member(
-            chat_id, user_id,
-            permissions=ChatPermissions(can_send_messages=False)
-        )
-    except Exception as e:
-        logging.error(f"Restrict error: {e}")
 
-async def kick_user(chat_id, user_id, context):
-    try:
-        await context.bot.ban_chat_member(chat_id, user_id)
-        await context.bot.unban_chat_member(chat_id, user_id)
-        logging.info(f"User {user_id} kicked from chat {chat_id}")
-    except Exception as e:
-        logging.error(f"Kick error: {e}")
-
-async def handle_new_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for member in update.chat_member.new_chat_members:
+async def handle_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    for member in update.message.new_chat_members:
         user_id = member.id
-        chat_id = update.chat_member.chat.id
+        chat_id = update.effective_chat.id
 
-        # Restringe al nuevo miembro
-        await restrict_user(chat_id, user_id, context)
+        # Mensaje de advertencia
+        await update.message.reply_text(f"{member.full_name}, tienes 60 segundos para enviar una foto o video o serás expulsado.")
 
         # Espera 60 segundos
         await asyncio.sleep(60)
 
-        # Si no envió foto/video, lo expulsa
-        if user_id in new_users_pending:
-            await kick_user(chat_id, user_id, context)
-            del new_users_pending[user_id]
+        # Verifica si el usuario envió una foto o video
+        if user_id not in context.chat_data:
+            await context.bot.ban_chat_member(chat_id=chat_id, user_id=user_id)
+            await context.bot.send_message(chat_id=chat_id, text=f"{member.full_name} fue expulsado por no enviar foto/video.")
+        else:
+            del context.chat_data[user_id]
 
-async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
 
-    if update.message.photo or update.message.video:
-        try:
-            # Permite al usuario hablar si ya envió media
-            await context.bot.restrict_chat_member(
-                chat_id, user_id,
-                permissions=ChatPermissions(
-                    can_send_messages=True,
-                    can_send_media_messages=True,
-                    can_send_other_messages=True,
-                    can_add_web_page_previews=True
-                )
-            )
-            if user_id in new_users_pending:
-                del new_users_pending[user_id]
-        except Exception as e:
-            logging.error(f"Media permit error: {e}")
+async def handle_photo_or_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    context.chat_data[user_id] = True
+
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    app.add_handler(ChatMemberHandler(handle_new_chat_member, ChatMemberHandler.CHAT_MEMBER))
-    app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_member))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_photo_or_video))
 
     app.run_polling()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
